@@ -1,3 +1,4 @@
+from django import forms
 from django.contrib import admin
 
 from .models import Appointment, Clinic, Doctor, Service
@@ -17,8 +18,27 @@ class ServiceAdmin(admin.ModelAdmin):
     search_fields = ['name', 'clinic__name']
 
 
+class DoctorAdminForm(forms.ModelForm):
+    class Meta:
+        model = Doctor
+        fields = '__all__'
+
+    def clean(self):
+        cleaned_data = super().clean()
+        clinic = cleaned_data.get('clinic')
+        services = cleaned_data.get('services')
+        if clinic and services:
+            mismatched = [s.name for s in services if s.clinic_id != clinic.id]
+            if mismatched:
+                raise forms.ValidationError(
+                    {'services': f'These services do not belong to {clinic}: {", ".join(mismatched)}.'}
+                )
+        return cleaned_data
+
+
 @admin.register(Doctor)
 class DoctorAdmin(admin.ModelAdmin):
+    form = DoctorAdminForm
     list_display = ['full_name', 'specialization', 'clinic', 'experience_years']
     list_filter = ['clinic', 'specialization']
     search_fields = ['full_name', 'specialization']
