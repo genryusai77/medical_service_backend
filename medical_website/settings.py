@@ -150,6 +150,12 @@ REST_FRAMEWORK = {
     'DEFAULT_PAGINATION_CLASS': 'rest_framework.pagination.PageNumberPagination',
     'PAGE_SIZE': 20,
     'DEFAULT_SCHEMA_CLASS': 'drf_spectacular.openapi.AutoSchema',
+    # 'assistant' scope throttles the public AI chat endpoint, which is
+    # unauthenticated (AllowAny) and each request calls the paid OpenAI API
+    # — without a rate limit it's an open cost/abuse vector.
+    'DEFAULT_THROTTLE_RATES': {
+        'assistant': '20/hour',
+    },
 }
 
 SPECTACULAR_SETTINGS = {

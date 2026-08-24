@@ -95,3 +95,8 @@ class AppointmentSerializer(serializers.ModelSerializer):
             raise serializers.ValidationError(
                 {'doctor': 'Doctor already has an appointment at this date and time.'}
             )
+
+
+class AssistantMessageSerializer(serializers.Serializer):
+    message = serializers.CharField(trim_whitespace=True, max_length=2000)
+    conversation_id = serializers.CharField(required=False, allow_blank=False, max_length=64)

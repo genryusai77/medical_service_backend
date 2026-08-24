@@ -1,10 +1,16 @@
+import uuid
+
 from rest_framework import viewsets
 from rest_framework.exceptions import ValidationError
 from rest_framework.permissions import AllowAny, IsAdminUser
+from rest_framework.response import Response
+from rest_framework.throttling import ScopedRateThrottle
+from rest_framework.views import APIView
 
 from .models import Appointment, Clinic, Doctor, Service
 from .serializers import (
     AppointmentSerializer,
+    AssistantMessageSerializer,
     ClinicDetailSerializer,
     ClinicSerializer,
     DoctorSerializer,
@@ -84,3 +90,23 @@ class AppointmentViewSet(viewsets.ModelViewSet):
         if self.action == 'create':
             return [AllowAny()]
         return [IsAdminUser()]
+
+
+class AssistantChatView(APIView):
+    permission_classes = [AllowAny]
+    throttle_classes = [ScopedRateThrottle]
+    throttle_scope = 'assistant'
+
+    def post(self, request):
+        # Imported lazily so a missing/invalid OPENAI_API_KEY only breaks
+        # this endpoint (agent.py reads it at import time) instead of
+        # crashing the whole app at Django startup.
+        from .ai_assistant.agent import run_agent
+
+        serializer = AssistantMessageSerializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+
+        conversation_id = serializer.validated_data.get('conversation_id') or str(uuid.uuid4())
+        reply = run_agent(serializer.validated_data['message'], thread_id=conversation_id)
+
+        return Response({'reply': reply, 'conversation_id': conversation_id})
