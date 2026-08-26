@@ -21,6 +21,7 @@ API: `/api/`, админка: `/admin/`.
 - `SECRET_KEY`, `DEBUG`, `ALLOWED_HOSTS` — читаются через `django-environ`; без `.env` используются dev-значения по умолчанию.
 - `DATABASE_URL` — строка подключения к Postgres (`postgres://user:pass@host:5432/db`); не задавай (не оставляй пустой строкой) для локальной разработки на SQLite.
 - `CORS_ALLOWED_ORIGINS` — список origin'ов фронтенда через запятую; не задавай для локальных дефолтов (`localhost:3000`/`5173`).
+- `AWS_STORAGE_BUCKET_NAME`, `AWS_ACCESS_KEY_ID`, `AWS_SECRET_ACCESS_KEY`, `AWS_S3_REGION_NAME`, `AWS_S3_ENDPOINT_URL`, `AWS_S3_CUSTOM_DOMAIN` — S3-хранилище для `Doctor.photo`; не задавай `AWS_STORAGE_BUCKET_NAME` для локального хранения на диске.
 - `OPENAI_API_KEY` — обязателен, иначе не работает `/api/assistant/chat/`.
 
 ## Тесты
@@ -45,4 +46,4 @@ API: `/api/`, админка: `/admin/`.
    - `OPENAI_API_KEY` — если нужен AI-ассистент.
 3. `Procfile` при каждом деплое сначала прогоняет `migrate` и `collectstatic`, затем стартует `gunicorn` (у Railway нет отдельной release-фазы как у Heroku, поэтому это сделано одной командой `web`).
 4. Статика отдаётся через `whitenoise` (настроено в `MIDDLEWARE`/`STORAGES`), отдельный сервер для статики не нужен.
-5. **Медиа-файлы (`Doctor.photo`) не персистентны на Railway** — файловая система эфемерна и очищается при каждом редеплое. Для продакшена нужно внешнее хранилище (например S3-совместимое через `django-storages`); сейчас это не настроено.
+5. **Медиа-файлы (`Doctor.photo`) не персистентны на Railway** — файловая система эфемерна и очищается при каждом редеплое. Задай `AWS_STORAGE_BUCKET_NAME` (+ `AWS_ACCESS_KEY_ID`/`AWS_SECRET_ACCESS_KEY`/`AWS_S3_REGION_NAME`, опционально `AWS_S3_ENDPOINT_URL` для S3-совместимых провайдеров вроде Cloudflare R2/Backblaze B2/DigitalOcean Spaces и `AWS_S3_CUSTOM_DOMAIN` для CDN) — тогда загрузки автоматически пойдут в S3 через `django-storages` вместо локального диска.

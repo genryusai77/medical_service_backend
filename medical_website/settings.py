@@ -145,19 +145,37 @@ USE_TZ = True
 STATIC_URL = 'static/'
 STATIC_ROOT = BASE_DIR / 'staticfiles'
 
+# Railway's filesystem is ephemeral — anything written to MEDIA_ROOT (e.g.
+# Doctor.photo uploads) is lost on every redeploy/restart. Setting
+# AWS_STORAGE_BUCKET_NAME switches the default file storage to S3 (or any
+# S3-compatible provider, via AWS_S3_ENDPOINT_URL) so uploads persist; with
+# it unset, local dev keeps using the filesystem unchanged.
+AWS_STORAGE_BUCKET_NAME = env.str('AWS_STORAGE_BUCKET_NAME', default='')
+
 STORAGES = {
     'default': {
-        'BACKEND': 'django.core.files.storage.FileSystemStorage',
+        'BACKEND': 'storages.backends.s3.S3Storage'
+        if AWS_STORAGE_BUCKET_NAME
+        else 'django.core.files.storage.FileSystemStorage',
     },
     'staticfiles': {
         'BACKEND': 'whitenoise.storage.CompressedManifestStaticFilesStorage',
     },
 }
 
-# NOTE: Railway's filesystem is ephemeral — anything written to MEDIA_ROOT
-# (e.g. Doctor.photo uploads) is lost on every redeploy/restart. This is
-# fine for local dev but needs external object storage (e.g. S3-compatible,
-# via django-storages) before this app is used for real uploads in prod.
+if AWS_STORAGE_BUCKET_NAME:
+    AWS_ACCESS_KEY_ID = env.str('AWS_ACCESS_KEY_ID', default='')
+    AWS_SECRET_ACCESS_KEY = env.str('AWS_SECRET_ACCESS_KEY', default='')
+    AWS_S3_REGION_NAME = env.str('AWS_S3_REGION_NAME', default='')
+    # Optional: point at an S3-compatible provider (Cloudflare R2, Backblaze
+    # B2, DigitalOcean Spaces, Railway's bucket offering) instead of AWS.
+    AWS_S3_ENDPOINT_URL = env.str('AWS_S3_ENDPOINT_URL', default='') or None
+    # Optional: serve media through a CDN/custom domain instead of the raw
+    # bucket/endpoint URL.
+    AWS_S3_CUSTOM_DOMAIN = env.str('AWS_S3_CUSTOM_DOMAIN', default='') or None
+    AWS_DEFAULT_ACL = None  # bucket-policy-controlled access, not object ACLs
+    AWS_S3_FILE_OVERWRITE = False  # don't clobber same-named uploads
+
 MEDIA_URL = 'media/'
 MEDIA_ROOT = BASE_DIR / 'media'
 
