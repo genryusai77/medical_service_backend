@@ -7,8 +7,10 @@ charset-normalizer==3.5.1
 distro==1.9.0
 Django==6.1
 django-cors-headers==4.9.0
+django-environ==0.14.0
 djangorestframework==3.18.0
 drf-spectacular==0.30.0
+gunicorn==26.2.0
 h11==0.16.0
 httpcore==1.0.9
 httpcore2==2.12.0
@@ -35,6 +37,8 @@ orjson==3.12.0
 ormsgpack==1.12.2
 packaging==26.3
 pillow==12.3.0
+psycopg==3.3.4
+psycopg-binary==3.3.4
 pydantic==2.13.4
 pydantic_core==2.46.4
 python-dotenv==1.2.3
@@ -55,5 +59,6 @@ uritemplate==4.2.0
 urllib3==2.7.0
 uuid_utils==0.17.0
 websockets==16.1.1
+whitenoise==6.12.0
 xxhash==4.0.1
 zstandard==0.25.0

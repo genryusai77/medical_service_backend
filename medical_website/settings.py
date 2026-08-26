@@ -12,20 +12,33 @@ https://docs.djangoproject.com/en/6.1/ref/settings/
 
 from pathlib import Path
 
+import environ
+
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
 
+env = environ.Env(
+    DEBUG=(bool, False),
+)
+environ.Env.read_env(BASE_DIR / '.env')
 
-# Quick-start development settings - unsuitable for production
-# See https://docs.djangoproject.com/en/6.1/howto/deployment/checklist/
 
 # SECURITY WARNING: keep the secret key used in production secret!
-SECRET_KEY = 'django-insecure-ex19_c$+hcm#&#xq*6-0h-pa5x&7m*&drixp%r)517wzun$400'
+SECRET_KEY = env.str(
+    'SECRET_KEY',
+    default='django-insecure-ex19_c$+hcm#&#xq*6-0h-pa5x&7m*&drixp%r)517wzun$400',
+)
 
 # SECURITY WARNING: don't run with debug turned on in production!
-DEBUG = True
+DEBUG = env.bool('DEBUG', default=False)
 
-ALLOWED_HOSTS = []
+ALLOWED_HOSTS = env.list('ALLOWED_HOSTS', default=['localhost', '127.0.0.1'])
+
+# Railway injects the app's public domain in this env var; accept it
+# automatically so ALLOWED_HOSTS doesn't need to be kept in sync by hand.
+RAILWAY_PUBLIC_DOMAIN = env.str('RAILWAY_PUBLIC_DOMAIN', default='')
+if RAILWAY_PUBLIC_DOMAIN and RAILWAY_PUBLIC_DOMAIN not in ALLOWED_HOSTS:
+    ALLOWED_HOSTS.append(RAILWAY_PUBLIC_DOMAIN)
 
 
 # Application definition
@@ -45,6 +58,7 @@ INSTALLED_APPS = [
 
 MIDDLEWARE = [
     'django.middleware.security.SecurityMiddleware',
+    'whitenoise.middleware.WhiteNoiseMiddleware',
     'corsheaders.middleware.CorsMiddleware',
     'django.contrib.sessions.middleware.SessionMiddleware',
     'django.middleware.common.CommonMiddleware',
@@ -54,13 +68,15 @@ MIDDLEWARE = [
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
 ]
 
-# React dev servers (Create React App / Vite) hitting this API locally.
-CORS_ALLOWED_ORIGINS = [
+# React dev servers (Create React App / Vite) hitting this API locally, by
+# default. Override/extend via the comma-separated CORS_ALLOWED_ORIGINS env
+# var to add production frontend origin(s) without a code change.
+CORS_ALLOWED_ORIGINS = env.list('CORS_ALLOWED_ORIGINS', default=[
     'http://localhost:3000',
     'http://127.0.0.1:3000',
     'http://localhost:5173',
     'http://127.0.0.1:5173',
-]
+])
 
 ROOT_URLCONF = 'medical_website.urls'
 
@@ -84,12 +100,11 @@ WSGI_APPLICATION = 'medical_website.wsgi.application'
 
 # Database
 # https://docs.djangoproject.com/en/6.1/ref/settings/#databases
+# Railway provisions Postgres and injects DATABASE_URL automatically; falls
+# back to local SQLite when it's unset (local dev).
 
 DATABASES = {
-    'default': {
-        'ENGINE': 'django.db.backends.sqlite3',
-        'NAME': BASE_DIR / 'db.sqlite3',
-    }
+    'default': env.db('DATABASE_URL', default=f'sqlite:///{BASE_DIR / "db.sqlite3"}')
 }
 
 
@@ -128,7 +143,21 @@ USE_TZ = True
 # https://docs.djangoproject.com/en/6.1/howto/static-files/
 
 STATIC_URL = 'static/'
+STATIC_ROOT = BASE_DIR / 'staticfiles'
 
+STORAGES = {
+    'default': {
+        'BACKEND': 'django.core.files.storage.FileSystemStorage',
+    },
+    'staticfiles': {
+        'BACKEND': 'whitenoise.storage.CompressedManifestStaticFilesStorage',
+    },
+}
+
+# NOTE: Railway's filesystem is ephemeral — anything written to MEDIA_ROOT
+# (e.g. Doctor.photo uploads) is lost on every redeploy/restart. This is
+# fine for local dev but needs external object storage (e.g. S3-compatible,
+# via django-storages) before this app is used for real uploads in prod.
 MEDIA_URL = 'media/'
 MEDIA_ROOT = BASE_DIR / 'media'
 
