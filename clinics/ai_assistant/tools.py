@@ -6,7 +6,7 @@ from clinics.serializers import AppointmentSerializer
 
 @tool
 def search_clinics(query: str = '', city: str = '') -> list[dict]:
-    """Search clinics by name and/or city."""
+    """Найти клиники по названию и/или городу."""
     qs = Clinic.objects.all()
     if city:
         qs = qs.filter(city__icontains=city)
@@ -27,7 +27,7 @@ def search_clinics(query: str = '', city: str = '') -> list[dict]:
 
 @tool
 def search_services(query: str = '', clinic_id: int | None = None) -> list[dict]:
-    """Search services by name and/or clinic id."""
+    """Найти услуги по названию и/или id клиники."""
     qs = Service.objects.select_related('clinic').all()
     if clinic_id:
         qs = qs.filter(clinic_id=clinic_id)
@@ -56,11 +56,11 @@ def book_appointment(
     service_id: int | None = None,
     comment: str = '',
 ) -> dict:
-    """Book an appointment at a clinic for a patient.
+    """Записать пациента на приём в клинику.
 
-    preferred_date must be formatted YYYY-MM-DD and preferred_time as HH:MM.
-    Only use clinic_id/doctor_id/service_id values previously returned by
-    search_clinics or search_services.
+    preferred_date должен быть в формате YYYY-MM-DD, а preferred_time — HH:MM.
+    Используй только значения clinic_id/doctor_id/service_id, ранее полученные
+    от search_clinics или search_services.
     """
     # Reuses AppointmentSerializer so the assistant is bound by the same
     # double-booking / past-date / clinic-consistency rules as the public API
